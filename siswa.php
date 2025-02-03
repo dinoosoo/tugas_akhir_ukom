@@ -1,3 +1,47 @@
+<?php
+// Koneksi ke database
+$host = "localhost";
+$user = "root"; 
+$pass = ""; 
+$db   = "tugas_digital";
+
+$conn = mysqli_connect($host, $user, $pass, $db);
+if (!$conn) {
+    die("Koneksi gagal: " . mysqli_connect_error());
+}
+
+// Proses penyimpanan data jika ada permintaan POST (AJAX)
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $nama_siswa = mysqli_real_escape_string($conn, $_POST['name']);
+    $kelas = mysqli_real_escape_string($conn, $_POST['class']);
+    $jenis_kelamin = mysqli_real_escape_string($conn, $_POST['gender']);
+    $nisn = mysqli_real_escape_string($conn, $_POST['nisn']);
+
+    $query = "INSERT INTO siswa (nama_siswa, kelas, jenis_kelamin, nisn) 
+              VALUES ('$nama_siswa', '$kelas', '$jenis_kelamin', '$nisn')";
+
+    if (mysqli_query($conn, $query)) {
+        echo json_encode([
+            "status" => "success",
+            "data" => [
+                "name" => $nama_siswa,
+                "class" => $kelas,
+                "gender" => $jenis_kelamin,
+                "nisn" => $nisn
+            ]
+        ]);
+    } else {
+        echo json_encode(["status" => "error", "message" => mysqli_error($conn)]);
+    }
+    exit;
+}
+
+// Ambil data siswa dari database
+$result = mysqli_query($conn, "SELECT * FROM siswa");
+?>
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,60 +49,110 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link href='https://unpkg.com/boxicons@2.0.9/css/boxicons.min.css' rel='stylesheet'>
 	<link rel="stylesheet" href="style.css">
-	<title>AdminSite</title>
+	<title>Siswa</title>
     <style>
-		/* Styling tambahan untuk tata letak form dan tabel */
-		.container {
-			display: flex;
-			gap: 20px;
-			margin-top: 20px;
-		}
-		.form-container, .table-container {
-			width: 50%;
-			padding: 20px;
-			border: 1px solid #ccc;
-			border-radius: 10px;
-			background-color: #fff;
-		}
-		.form-container form .form-group {
-			margin-bottom: 15px;
-		}
-		.form-container form label {
-			display: block;
-			margin-bottom: 5px;
-		}
-		.form-container form input,
-		.form-container form select {
-			width: 100%;
-			padding: 8px;
-			border: 1px solid #ccc;
-			border-radius: 5px;
-		}
-		.table-container table {
-			width: 100%;
-			border-collapse: collapse;
-		}
-		.table-container table th,
-		.table-container table td {
-			padding: 10px;
-			border: 1px solid #ddd;
-			text-align: left;
-		}
-		.table-container table th {
-			background-color: #f4f4f4;
-		}
-		.button-submit {
-			background-color: #4CAF50;
-			color: white;
-			padding: 10px 15px;
-			border: none;
-			border-radius: 5px;
-			cursor: pointer;
-		}
-		.button-submit:hover {
-			background-color: #45a049;
-		}
-	</style>
+    /* Styling tambahan untuk tata letak form dan tabel */
+    .container {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+        justify-content: space-between;
+    }
+    .form-container, .table-container {
+        width: 48%;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        height: 500px; /* Menetapkan tinggi tetap */
+        overflow: hidden; /* Menyembunyikan overflow dari form dan tabel */
+    }
+    .form-container {
+        overflow-y: auto; /* Menambahkan scroll pada form jika terlalu panjang */
+    }
+    .table-container {
+        overflow-y: auto; /* Menambahkan scroll pada tabel jika data terlalu banyak */
+    }
+    .form-container h3, .table-container h3 {
+        color: #333;
+        font-size: 1.4em;
+        margin-bottom: 15px;
+    }
+    .form-container form .form-group {
+        margin-bottom: 20px;
+    }
+    .form-container form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+    .form-container form input,
+    .form-container form select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background-color: #fff;
+        font-size: 1em;
+    }
+    .form-container form input:focus,
+    .form-container form select:focus {
+        border-color: #4CAF50;
+        outline: none;
+    }
+    .table-container table {
+    width: 100%;
+    border-collapse: collapse; /* Menyatukan border tabel */
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ddd; /* Menambahkan border pada tabel */
+}
+
+.table-container table th,
+.table-container table td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #ddd; /* Menambahkan border pada th dan td */
+}
+
+.table-container table th {
+    background-color: #007BFF; /* Mengubah warna header tabel menjadi biru */
+    color: white;
+    font-weight: bold;
+}
+
+.table-container table tr:nth-child(even) {
+    background-color: #f1faff; /* Warna latar belakang baris genap biru muda */
+}
+
+.table-container table tr:hover {
+    background-color: #e0f7ff; /* Efek hover dengan warna biru lebih terang */
+}
+    .button-submit {
+        background-color: #4CAF50;
+        color: white;
+        padding: 12px 18px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1.1em;
+        transition: background-color 0.3s ease;
+    }
+    /* Styling untuk tombol submit agar berada di sebelah kanan */
+.form-container form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Menjaga elemen tetap teratur di kiri */
+}
+
+.button-submit {
+    align-self: flex-end; /* Menempatkan tombol di sebelah kanan */
+}
+</style>
+
 </head>
 <body>
 	
@@ -174,25 +268,39 @@
 </section>
 
 <script>
-	// JavaScript untuk menangani form submission dan menambahkan data ke tabel
-	document.getElementById('dataForm').addEventListener('submit', function (event) {
-		event.preventDefault(); // Mencegah reload halaman
+document.getElementById('dataForm').addEventListener('submit', function (event) {
+    event.preventDefault();
 
-		// Mengambil nilai input
-		const name = document.getElementById('name').value;
-		const classValue = document.getElementById('class').value;
-		const gender = document.getElementById('gender').value;
-		const nisn = document.getElementById('nisn').value;
+    const formData = new FormData(this);
 
-		// Menambahkan data ke tabel
-		const tableBody = document.getElementById('dataTable');
-		const newRow = document.createElement('tr');
-		newRow.innerHTML = `<td>${name}</td><td>${classValue}</td><td>${gender}</td><td>${nisn}</td>`;
-		tableBody.appendChild(newRow);
+    fetch('siswa.php', { 
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json()) 
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Data berhasil disimpan!');
 
-		// Reset form
-		this.reset();
-	});
+            // Tambahkan data baru ke tabel tanpa reload
+            const table = document.getElementById('dataTable');
+            const newRow = table.insertRow();
+            
+            newRow.innerHTML = `
+                <td>${data.data.name}</td>
+                <td>${data.data.class}</td>
+                <td>${data.data.gender}</td>
+                <td>${data.data.nisn}</td>
+            `;
+
+            // Reset form setelah submit
+            document.getElementById('dataForm').reset();
+        } else {
+            alert('Terjadi kesalahan: ' + data.message);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>

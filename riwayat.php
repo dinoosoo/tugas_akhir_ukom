@@ -1,34 +1,8 @@
 <?php
-// Koneksi ke database
-$host = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tugas_digital"; // Nama database Anda
+session_start();
+$user_role = $_SESSION['role'] ?? 'siswa'; // Gunakan role dari session atau default ke siswa
 
-$conn = new mysqli($host, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Koneksi gagal: " . $conn->connect_error);
-}
-
-// Proses pengiriman form
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $kelas = $_POST['kelas'];
-
-    // Query untuk menyimpan data kelas ke database
-    $sql = "INSERT INTO kelas (kelas) VALUES ('$kelas')";
-
-    if ($conn->query($sql) === TRUE) {
-        echo "Data kelas berhasil disimpan!";
-    } else {
-        echo "Error: " . $sql . "<br>" . $conn->error;
-    }
-}
-
-// Ambil data kelas dari database
-$result = $conn->query("SELECT * FROM kelas");
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -39,6 +13,15 @@ $result = $conn->query("SELECT * FROM kelas");
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
+                .badge-tepat {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .badge-terlambat {
+            background-color: #dc3545;
+            color: white;
+        }
 /* Sidebar Background - Terang */
 .side-menu {
     background-color: #f5f5f5; /* Warna terang */
@@ -155,68 +138,66 @@ $result = $conn->query("SELECT * FROM kelas");
 		<main>
 
             <div class="container mt-4">
-                <h3>Daftar Kelas</h3>
+                <h3>Riwayat Tugas</h3>
 
                 <div class="row">
                     <!-- Kolom kiri: Tabel -->
                     <div class="col-md-12">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Data Kelas</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-bordered">
-                                        <thead>
-                                            <tr>
-                                                <th>No</th>
-                                                <th>Kelas</th>
-                                                <th>Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php 
-                                                $no = 1;
-                                                while ($row = $result->fetch_assoc()) {
-                                                    echo "<tr>
-                                                            <td>{$no}</td>
-                                                            <td>{$row['kelas']}</td>
-                                                            <td>
-                                                                <a href='edit_kelas.php?id={$row['id']}' class='btn btn-sm btn-warning'><i class='bi bi-pencil-square'></i> Edit</a>
-                                                            </td>
-                                                          </tr>";
-                                                    $no++;
-                                                }
-                                            ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                            <h5>Tugas yang Telah Dikumpulkan</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Tugas</th>
+                                    <th>Kelas</th>
+                                    <th>Tanggal Pengumpulan</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                // Contoh data riwayat tugas (nanti ganti dari database)
+                                $tugas = [
+                                    ['nama' => 'Tugas Matematika', 'kelas' => '10A', 'tanggal' => '2024-08-30', 'status' => 'Tepat Waktu'],
+                                    ['nama' => 'Tugas Bahasa Inggris', 'kelas' => '10B', 'tanggal' => '2024-08-29', 'status' => 'Terlambat'],
+                                ];
 
-                    <!-- Kolom kanan: Form -->
-                    <div class="col-md-6 mt-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Tambah Kelas</h5>
-                            </div>
-                            <div class="card-body">
-                                <form action="kelas.php" method="POST">
-                                    <div class="mb-3">
-                                        <label for="kelas" class="form-label">Nama Kelas</label>
-                                        <input type="text" class="form-control" id="kelas" name="kelas" required>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Tambah Kelas</button>
-                                </form>
-                            </div>
-                        </div>
+                                $no = 1;
+                                foreach ($tugas as $item) :
+                                ?>
+                                    <tr>
+                                        <td><?php echo $no++; ?></td>
+                                        <td><?php echo $item['nama']; ?></td>
+                                        <td><?php echo $item['kelas']; ?></td>
+                                        <td><?php echo $item['tanggal']; ?></td>
+                                        <td>
+                                            <?php if ($item['status'] == 'Tepat Waktu') : ?>
+                                                <span class="badge badge-tepat">Tepat Waktu</span>
+                                            <?php else : ?>
+                                                <span class="badge badge-terlambat">Terlambat</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <a href="#" class="btn btn-sm btn-info">Lihat Detail</a>
+                                            <a href="#" class="btn btn-sm btn-success">Download</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-        </main>
-    </section>
+        </div>
+    </main>
+</section>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script>
@@ -237,7 +218,3 @@ function confirmLogout(event) {
 </script>
 
 </html>
-
-<?php
-$conn->close();
-?>

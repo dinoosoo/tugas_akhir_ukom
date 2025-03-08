@@ -1,3 +1,39 @@
+<?php
+session_start();
+if ($_SESSION['role'] != 'guru') {
+    header("Location: siswa_dashboard.php");
+    exit();
+}
+include 'sidebar.php';
+// Koneksi langsung ke database tugas_digital
+$host = "localhost";
+$user = "root"; // Ganti jika pakai user lain
+$pass = ""; // Ganti jika ada password
+$db = "tugas_digital";
+
+$conn = mysqli_connect($host, $user, $pass, $db);
+
+// Periksa koneksi
+if (!$conn) {
+    die("Koneksi gagal: " . mysqli_connect_error());
+}
+
+// Ambil jumlah tugas dari tabel form_tugas
+$resultTugas = mysqli_query($conn, "SELECT COUNT(*) as total_tugas FROM form_tugas");
+$dataTugas = mysqli_fetch_assoc($resultTugas);
+$totalTugas = $dataTugas['total_tugas'];
+
+// Ambil jumlah guru dari tabel guru
+$resultGuru = mysqli_query($conn, "SELECT COUNT(*) as total_guru FROM guru");
+$dataGuru = mysqli_fetch_assoc($resultGuru);
+$totalGuru = $dataGuru['total_guru'];
+
+// Ambil jumlah siswa dari tabel siswa
+$resultSiswa = mysqli_query($conn, "SELECT COUNT(*) as total_siswa FROM siswa");
+$dataSiswa = mysqli_fetch_assoc($resultSiswa);
+$totalSiswa = $dataSiswa['total_siswa'];
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,36 +41,108 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link href='https://unpkg.com/boxicons@2.0.9/css/boxicons.min.css' rel='stylesheet'>
 	<link rel="stylesheet" href="style.css">
+	<style>
+/* Sidebar Background - Terang */
+.side-menu {
+    background-color: #f5f5f5; /* Warna terang */
+    padding: 20px;
+    min-height: 100vh;
+    border-right: 1px solid #ddd;
+}
+
+/* Perbesar teks menu utama */
+.side-menu li a {
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: #333; /* Teks gelap */
+    transition: background 0.3s, color 0.3s;
+    border-radius: 8px;
+}
+
+/* Hover dan Active - Warna Silver */
+.side-menu li a:hover, 
+.side-menu li a.active {
+    background-color: #c0c0c0; /* Silver */
+    color: #000; /* Teks hitam */
+}
+
+/* Perbesar dan ubah warna ikon */
+.side-menu li a .icon {
+    font-size: 24px;
+    color: #666; /* Soft Grey untuk ikon */
+    transition: color 0.3s;
+}
+
+/* Hover efek untuk ikon */
+.side-menu li a:hover .icon, 
+.side-menu li a.active .icon {
+    color: #000; /* Ikon hitam saat hover/active */
+}
+
+/* Dropdown menu */
+.side-dropdown {
+    margin-left: 20px;
+    background-color: #eaeaea; /* Lebih terang untuk dropdown */
+    border-radius: 6px;
+    padding: 5px 0;
+}
+
+.side-dropdown li a {
+    font-size: 16px;
+    padding: 10px 20px;
+    color: #555; /* Light Grey */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Hover dropdown dengan warna silver */
+.side-dropdown li a:hover {
+    background-color: #c0c0c0; /* Silver */
+    color: #000;
+}
+
+
+    </style>
 	<title>Tuga Digital</title>
 </head>
 <body>
 	
-	<!-- SIDEBAR -->
-	<section id="sidebar">
+<!-- SIDEBAR -->
+<section id="sidebar">
 	<a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
 	<ul class="side-menu">
-	<li><a href="index.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
-	<li class="divider" data-text="main">Main</li>
-	<li>
-				<a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-				<ul class="side-dropdown">
-					<li><a href="kelas.php">Kelas</a></li>
-					<li><a href="guru.php">Guru</a></li>
-					<li><a href="siswa.php">Siswa</a></li>
-				</ul>
-			</li>
-			<li>
-				<a href="#"><i class='bx bxs-notepad icon' ></i> Manejemen Tugas <i class='bx bx-chevron-right icon-right' ></i></a>
-				<ul class="side-dropdown">
-					<li><a href="tugas.php">Tugas</a></li>
-					<li><a href="tugas_terkumpul.php">Tugas Terkumpul</a></li>
-				</ul>
-			</li>
-			<li><a href="charts.php"><i class='bx bxs-chart icon' ></i> Charts</a></li>
-			<li><a href="tables.php"><i class='bx bx-table icon' ></i> Tables</a></li>
-		</ul>
-	</section>
-	<!-- SIDEBAR -->
+    <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+
+    <li>
+        <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
+        <ul class="side-dropdown">
+		<li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
+            <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
+            <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
+        </ul>
+    </li>
+
+    <li>
+        <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
+        <ul class="side-dropdown">
+            <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
+			<li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
+			
+        </ul>
+    </li>
+
+    <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
+    <li><a href="#" onclick="confirmLogout(event)"><i class='bx bx-log-out icon'></i> Logout</a></li>
+
+
+</ul>
+
+	</section>	<!-- SIDEBAR -->
 
 	<!-- NAVBAR -->
 	<section id="content">
@@ -46,99 +154,62 @@
 					<i class='bx bx-search icon' ></i>
 				</div>
 			</form>
-			<a href="#" class="nav-link">
-				<i class='bx bxs-bell icon' ></i>
-			</a>
-			<a href="#" class="nav-link">
-				<i class='bx bxs-message-square-dots icon' ></i>
-			</a>
+			
 			<span class="divider"></span>
-			<div class="profile">
-				<img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?ixid=MnwxMjA3fDB8MHxzZWFyY2h8NHx8cGVvcGxlfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="">
-				<ul class="profile-link">
-					<li><a href="logout.php"><i class='bx bxs-log-out-circle' ></i> Logout</a></li>
-				</ul>
-			</div>
 		</nav>
 		<main>
-			<h1 class="title">Dashboard</h1>
+		<h1>SELAMAT DATANG GURU, <?php echo $_SESSION['username']; ?>!</h1>
 			<ul class="breadcrumbs">
 				<li><a href="#">Home</a></li>
 				<li class="divider">/</li>
 				<li><a href="#" class="active">Dashboard</a></li>
 			</ul>
 			<!-- MAIN -->
-			<div class="info-data">
-				<div class="card">
-					<div class="head">
-						<div>
-							<h2>1500</h2>
-							<p>Traffic</p>
-						</div>
-						<i class='bx bx-trending-up icon' ></i>
-					</div>
-					<span class="progress" data-value="40%"></span>
-					<span class="label">40%</span>
-				</div>
-				<div class="card">
-					<div class="head">
-						<div>
-							<h2>234</h2>
-							<p>Sales</p>
-						</div>
-						<i class='bx bx-trending-down icon down' ></i>
-					</div>
-					<span class="progress" data-value="60%"></span>
-					<span class="label">60%</span>
-				</div>
-				<div class="card">
-					<div class="head">
-						<div>
-							<h2>465</h2>
-							<p>Pageviews</p>
-						</div>
-						<i class='bx bx-trending-up icon' ></i>
-					</div>
-					<span class="progress" data-value="30%"></span>
-					<span class="label">30%</span>
-				</div>
-				<div class="card">
-					<div class="head">
-						<div>
-							<h2>235</h2>
-							<p>Visitors</p>
-						</div>
-						<i class='bx bx-trending-up icon' ></i>
-					</div>
-					<span class="progress" data-value="80%"></span>
-					<span class="label">80%</span>
-				</div>
-			</div>
-			<div class="data">
-				<div class="content-data">
-					<div class="head">
-						<h3>Sales Report</h3>
-						<div class="menu">
-							<i class='bx bx-dots-horizontal-rounded icon'></i>
-							<ul class="menu-link">
-								<li><a href="#">Edit</a></li>
-								<li><a href="#">Save</a></li>
-								<li><a href="#">Remove</a></li>
-							</ul>
-						</div>
-					</div>
-					<div class="chart">
-						<div id="chart"></div>
-					</div>
-				</div>
-				</div>
-			</div>
-		</main>
-		<!-- MAIN -->
-	</section>
-	<!-- NAVBAR -->
-
+<div class="info-data">
+    <div class="card">
+        <div class="head">
+            <div>
+                <h2><?php echo $totalTugas; ?></h2>
+                <p>Total Tugas</p>
+            </div>
+            <i class='bx bx-book icon'></i>
+        </div>
+    </div>
+    <div class="card">
+        <div class="head">
+            <div>
+                <h2><?php echo $totalGuru; ?></h2>
+                <p>Total Guru</p>
+            </div>
+            <i class='bx bx-user icon'></i>
+        </div>
+    </div>
+    <div class="card">
+        <div class="head">
+            <div>
+                <h2><?php echo $totalSiswa; ?></h2>
+                <p>Total Siswa</p>
+            </div>
+            <i class='bx bx-group icon'></i>
+        </div>
+    </div>
+</div>
 	<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 	<script src="script.js"></script>
 </body>
+<script>
+function confirmLogout(event) {
+    event.preventDefault(); // Mencegah link langsung berjalan
+
+    // Tampilkan dialog konfirmasi
+    let confirmation = confirm("⚠️ Apakah Anda yakin ingin keluar dari akun ini?\n\nPastikan semua tugas sudah dikumpulkan!");
+
+    if (confirmation) {
+        // Jika user klik OK, arahkan ke logout.php
+        window.location.href = "logout.php";
+    }
+    // Jika user klik Cancel, tidak terjadi apa-apa
+}
+</script>
+
 </html>

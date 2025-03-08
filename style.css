@@ -125,6 +125,52 @@ li {
 	background: var(--blue);
 	color: var(--light);
 }
+
+/* Perbesar teks menu */
+ul li a {
+    font-size: 18px; /* Perbesar teks */
+    font-weight: bold; /* Tebalkan teks */
+    color: #333; /* Warna teks */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+/* Perbesar icon */
+ul li a i.icon {
+    font-size: 24px; /* Perbesar ukuran icon */
+    color: #007bff; /* Warna icon */
+    transition: color 0.3s ease;
+}
+
+/* Hover efek untuk teks dan icon */
+ul li a:hover {
+    color: #007bff; /* Ubah warna teks saat hover */
+}
+
+ul li a:hover i.icon {
+    color: #ff5733; /* Ubah warna icon saat hover */
+}
+
+/* Submenu dropdown */
+ul.side-dropdown li a {
+    font-size: 16px; /* Ukuran teks submenu */
+    padding-left: 30px;
+    color: #555;
+}
+
+/* Hover submenu */
+ul.side-dropdown li a:hover {
+    color: #007bff;
+}
+
+/* Aktif menu */
+ul li a.active {
+    background-color: #f0f0f0;
+    border-radius: 8px;
+}
+
 #sidebar .divider {
 	margin-top: 24px;
 	font-size: 12px;

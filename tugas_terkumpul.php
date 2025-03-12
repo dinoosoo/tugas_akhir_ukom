@@ -1,21 +1,46 @@
 <?php
 session_start();
-$user_role = $_SESSION['role'] ?? 'siswa'; // Gunakan role dari session atau default ke siswa
+$user_role = $_SESSION['role'] ?? 'guru'; // Default ke guru jika role tidak ada
+include 'koneksi.php';
 
-// Koneksi langsung ke database
-$host = "localhost";
-$user = "root";
-$pass = "";
-$dbname = "tugas_digital";
-
-$conn = mysqli_connect($host, $user, $pass, $dbname);
-
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
+// Pastikan session nama_guru sudah di-set
+if ($user_role == 'guru' && !isset($_SESSION['nama_guru'])) {
+    die("Session nama_guru tidak ditemukan. Silakan login kembali.");
 }
 
-// Query untuk mengambil data tugas
-$query = "SELECT * FROM tugas_terkumpul"; 
+// Query dasar untuk mengambil data tugas dengan JOIN
+$query = "
+    SELECT 
+        tugas_terkumpul.id AS id_tugas_terkumpul,
+        tugas_terkumpul.nama_siswa,
+        tugas_terkumpul.file_upload,
+        tugas_terkumpul.waktu_pengumpulan,
+        tugas_terkumpul.feedback,
+        form_tugas.judul,
+        form_tugas.mata_pelajaran,
+        form_tugas.kelas,
+        siswa.nama_siswa AS nama_siswa_lengkap,
+        siswa.kelas AS kelas_siswa,
+        guru.nama_guru
+    FROM tugas_terkumpul
+    INNER JOIN form_tugas ON tugas_terkumpul.id_tugas = form_tugas.id
+    INNER JOIN siswa ON tugas_terkumpul.nama_siswa = siswa.nama_siswa
+    INNER JOIN guru ON form_tugas.mata_pelajaran = guru.mapel
+";
+
+// Tambahkan kondisi berdasarkan role
+if ($user_role == 'guru') {
+    // Jika role guru, filter tugas berdasarkan guru yang login
+    $nama_guru = $_SESSION['nama_guru']; // Ambil nama guru dari session
+    $query .= " WHERE guru.nama_guru = '$nama_guru'";
+} elseif ($user_role == 'admin') {
+    // Jika role admin, tidak perlu filter (ambil semua data)
+} else {
+    // Jika role tidak valid, redirect atau tampilkan pesan error
+    die("Role tidak valid.");
+}
+
+// Jalankan query
 $result = mysqli_query($conn, $query);
 
 // Cek apakah query berhasil dijalankan
@@ -25,8 +50,8 @@ if (!$result) {
 
 // Untuk nomor urut
 $no = 1;
-
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -111,35 +136,53 @@ $no = 1;
 <body>
 	
 	<!-- SIDEBAR -->
-	<section id="sidebar">
-	<a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
-	<ul class="side-menu">
-    <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+<section id="sidebar">
+    <a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
+    <ul class="side-menu">
+        <!-- Dashboard sesuai role -->
+        <?php if ($_SESSION['role'] === 'admin') : ?>
+            <li><a href="admin_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php elseif ($_SESSION['role'] === 'guru') : ?>
+            <li><a href="guru_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php elseif ($_SESSION['role'] === 'siswa') : ?>
+            <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php endif; ?>
 
-    <li>
-        <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-        <ul class="side-dropdown">
-		<li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
-            <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
-            <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
-        </ul>
-    </li>
+        <!-- Menu Master Tugas -->
+            <li>
+                <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
+                <ul class="side-dropdown">
+                    <?php if ($_SESSION['role'] === 'admin') : ?>
+                        <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
+                    <?php endif; ?>
+                    <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'guru') : ?>
+                    <li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
+                    <?php endif; ?>
+                    <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
+                </ul>
+            </li>
 
-    <li>
-        <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-        <ul class="side-dropdown">
-            <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
-			<li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
-        </ul>
-    </li>
+        <!-- Menu Manajemen Tugas -->
+            <li>
+                <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
+                <ul class="side-dropdown">
+                    <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
+                    <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'guru') : ?>
+                        <li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
+                    <?php endif; ?>
+                </ul>
+            </li>
 
-    <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
-    <li><a href="logout.php"><i class='bx bx-log-out icon'></i> Logout</a></li>
+        <!-- Menu Riwayat Tugas -->
+        <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'siswa') : ?>
+            <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
+        <?php endif; ?>
 
-</ul>
-
-	</section>
-	<!-- SIDEBAR -->
+        <!-- Menu Logout -->
+        <li><a href="#" onclick="confirmLogout(event)"><i class='bx bx-log-out icon'></i> Logout</a></li>
+    </ul>
+</section>
+<!-- SIDEBAR -->
 
 	<!-- NAVBAR -->
 	<section id="content">
@@ -156,7 +199,7 @@ $no = 1;
 		</nav>
 		<main>
 
-		<!-- Form Tambah Tugas -->
+<!-- Form Tambah Tugas -->
 <div class="container mt-4">
     <h2 class="text-start mb-3"><i class="fas fa-tasks"></i> Tugas Terkumpul</h2>
     <div class="card">
@@ -181,39 +224,45 @@ $no = 1;
                         </tr>
                     </thead>
                     <tbody>
-					<?php if (mysqli_num_rows($result) > 0) { ?>
-    <?php while ($row = mysqli_fetch_assoc($result)) { ?>
-        <tr>
-            <td><?= $no++; ?></td>
-            <td><?= htmlspecialchars($row['nama_siswa']); ?></td>
-            <td><?= htmlspecialchars($row['judul']); ?></td>
-            <td><?= htmlspecialchars($row['mata_pelajaran']); ?></td>
-            <td><?= htmlspecialchars($row['kelas']); ?></td>
-            <td><?= htmlspecialchars($row['tanggal_pengumpulan']); ?></td>
-            <td>
-                <a href="<?= $row['file_path']; ?>" target="_blank" class="btn btn-primary btn-sm">
-                    <i class="fas fa-eye"></i> Lihat
-                </a>
-            </td>
-            <td><textarea class="form-control" placeholder="Masukkan feedback"></textarea></td>
-            <td>
-                <span class="badge bg-warning status">Belum Dinilai</span>
-                <form method="POST" action="hapus_tugas.php" style="display:inline-block;" onsubmit="return confirm('Yakin ingin hapus tugas ini?');">
-                    <input type="hidden" name="id" value="<?= $row['id']; ?>">
-                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Hapus</button>
-                </form>
-            </td>
-        </tr>
-    <?php } ?>
-<?php } else { ?>
-    <tr>
-        <td colspan="9" class="text-center text-muted">
-            <i class="fas fa-exclamation-circle fa-2x text-danger"></i><br>
-            Tugas tidak ada.
-        </td>
-    </tr>
-<?php } ?>
-
+                        <?php if (mysqli_num_rows($result) > 0) { ?>
+                            <?php while ($row = mysqli_fetch_assoc($result)) { ?>
+                                <tr>
+                                    <td><?= $no++; ?></td>
+                                    <td><?= htmlspecialchars($row['nama_siswa_lengkap']); ?></td>
+                                    <td><?= htmlspecialchars($row['judul']); ?></td>
+                                    <td><?= htmlspecialchars($row['mata_pelajaran']); ?></td>
+                                    <td><?= htmlspecialchars($row['kelas_siswa']); ?></td>
+                                    <td><?= htmlspecialchars($row['waktu_pengumpulan']); ?></td>
+                                    <td>
+                                        <a href="uploads/<?= htmlspecialchars($row['file_upload']); ?>" target="_blank" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-eye"></i> Lihat
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <textarea class="form-control" readonly><?= htmlspecialchars($row['feedback']); ?></textarea>
+                                    </td>
+                                    <td>
+                                    <?php if (empty($row['feedback'])) : ?>
+                                    <span class="badge bg-warning status">Belum Dinilai</span>
+                                    <?php endif; ?>
+                                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#nilaiModal" onclick="setNilaiModal(<?= $row['id_tugas_terkumpul']; ?>)">
+                                    <i class="fas fa-check"></i> Nilai
+                                    </button>
+                                    <form method="POST" action="hapus_tugas.php" style="display:inline-block;" onsubmit="return confirm('Yakin ingin hapus tugas ini?');">
+                                    <input type="hidden" name="id" value="<?= $row['id_tugas_terkumpul']; ?>">
+                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Hapus</button>
+                                    </form>
+                                    </td>
+                                </tr>
+                            <?php } ?>
+                        <?php } else { ?>
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">
+                                    <i class="fas fa-exclamation-circle fa-2x text-danger"></i><br>
+                                    Tugas tidak ada.
+                                </td>
+                            </tr>
+                        <?php } ?>
                     </tbody>
                 </table>
 
@@ -223,7 +272,48 @@ $no = 1;
     </div>
 </div>
 
+<!-- modal nilai -->
+ <!-- Modal untuk Input Nilai dan Feedback -->
+<div class="modal fade" id="nilaiModal" tabindex="-1" aria-labelledby="nilaiModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nilaiModalLabel">Nilai Tugas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="proses_nilai.php" method="POST">
+                <div class="modal-body">
+                    <!-- Input ID Tugas Terkumpul -->
+                    <input type="hidden" name="id_tugas_terkumpul" id="id_tugas_terkumpul">
+
+                    <!-- Input Feedback -->
+                    <div class="mb-3">
+                        <label for="feedback" class="form-label">Feedback</label>
+                        <textarea class="form-control" id="feedback" name="feedback" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" name="submit_nilai" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+    function confirmLogout(event) {
+    event.preventDefault(); // Mencegah link langsung berjalan
+
+    // Tampilkan dialog konfirmasi
+    let confirmation = confirm("⚠️ Apakah Anda yakin ingin keluar dari akun ini?\n\nPastikan semua tugas sudah dikumpulkan!");
+
+    if (confirmation) {
+        // Jika user klik OK, arahkan ke logout.php
+        window.location.href = "logout.php";
+    }
+    // Jika user klik Cancel, tidak terjadi apa-apa
+}
     function lihatTugas(fileUrl) {
         window.open(fileUrl, '_blank');
     }
@@ -238,11 +328,11 @@ $no = 1;
         status.classList.remove("bg-warning");
         status.classList.add("bg-success");
     }
+    function setNilaiModal(id) {
+        // Set nilai id_tugas_terkumpul di modal
+        document.getElementById('id_tugas_terkumpul').value = id;
+    }
 </script>
-
-
-
-
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 	<script src="script.js"></script>

@@ -3,35 +3,43 @@ session_start();
 if ($_SESSION['role'] != 'siswa') {
     header("Location: index.php");
     exit();
-    
 }
-// Koneksi langsung ke database tugas_digital
-$host = "localhost";
-$user = "root"; // Ganti jika pakai user lain
-$pass = ""; // Ganti jika ada password
-$db = "tugas_digital";
+include 'koneksi.php';
 
-$conn = mysqli_connect($host, $user, $pass, $db);
-
-// Periksa koneksi
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
+// Pastikan session nama_siswa sudah di-set
+if (!isset($_SESSION['nama_siswa'])) {
+    die("Session nama_siswa tidak ditemukan. Silakan login kembali.");
 }
 
-// Ambil jumlah tugas dari tabel form_tugas
-$resultTugas = mysqli_query($conn, "SELECT COUNT(*) as total_tugas FROM form_tugas");
-$dataTugas = mysqli_fetch_assoc($resultTugas);
-$totalTugas = $dataTugas['total_tugas'];
+$nama_siswa = $_SESSION['nama_siswa']; // Ambil nama siswa dari session
 
-// Ambil jumlah guru dari tabel guru
-$resultGuru = mysqli_query($conn, "SELECT COUNT(*) as total_guru FROM guru");
-$dataGuru = mysqli_fetch_assoc($resultGuru);
-$totalGuru = $dataGuru['total_guru'];
+// Query untuk mengambil total tugas
+$queryTotalTugas = "SELECT COUNT(*) as total_tugas FROM form_tugas";
+$resultTotalTugas = mysqli_query($conn, $queryTotalTugas);
+$dataTotalTugas = mysqli_fetch_assoc($resultTotalTugas);
+$totalTugas = $dataTotalTugas['total_tugas'];
 
-// Ambil jumlah siswa dari tabel siswa
-$resultSiswa = mysqli_query($conn, "SELECT COUNT(*) as total_siswa FROM siswa");
-$dataSiswa = mysqli_fetch_assoc($resultSiswa);
-$totalSiswa = $dataSiswa['total_siswa'];
+// Query untuk mengambil total tugas yang belum dikerjakan oleh siswa
+$queryTugasBelumSelesai = "
+    SELECT COUNT(*) as total_belum_selesai 
+    FROM form_tugas 
+    WHERE id NOT IN (
+        SELECT id_tugas FROM tugas_terkumpul WHERE nama_siswa = '$nama_siswa'
+    )
+";
+$resultTugasBelumSelesai = mysqli_query($conn, $queryTugasBelumSelesai);
+$dataTugasBelumSelesai = mysqli_fetch_assoc($resultTugasBelumSelesai);
+$totalBelumSelesai = $dataTugasBelumSelesai['total_belum_selesai'];
+
+// Query untuk mengambil total riwayat tugas (tugas yang sudah dikerjakan)
+$queryRiwayatTugas = "
+    SELECT COUNT(*) as total_riwayat 
+    FROM tugas_terkumpul 
+    WHERE nama_siswa = '$nama_siswa'
+";
+$resultRiwayatTugas = mysqli_query($conn, $queryRiwayatTugas);
+$dataRiwayatTugas = mysqli_fetch_assoc($resultRiwayatTugas);
+$totalRiwayat = $dataRiwayatTugas['total_riwayat'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -120,7 +128,6 @@ $totalSiswa = $dataSiswa['total_siswa'];
     <li>
         <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
         <ul class="side-dropdown">
-            <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
             <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
         </ul>
     </li>
@@ -129,7 +136,6 @@ $totalSiswa = $dataSiswa['total_siswa'];
         <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
         <ul class="side-dropdown">
             <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
-            <li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
         </ul>
     </li>
 
@@ -164,7 +170,7 @@ $totalSiswa = $dataSiswa['total_siswa'];
 				<li class="divider">/</li>
 				<li><a href="#" class="active">Dashboard</a></li>
 			</ul>
-			<!-- MAIN -->
+<!-- MAIN -->
 <div class="info-data">
     <div class="card">
         <div class="head">
@@ -178,19 +184,19 @@ $totalSiswa = $dataSiswa['total_siswa'];
     <div class="card">
         <div class="head">
             <div>
-                <h2><?php echo $totalGuru; ?></h2>
-                <p>Total Guru</p>
+                <h2><?php echo $totalBelumSelesai; ?></h2>
+                <p>Total Tugas Belum Selesai</p>
             </div>
-            <i class='bx bx-user icon'></i>
+            <i class='bx bx-task icon'></i>
         </div>
     </div>
     <div class="card">
         <div class="head">
             <div>
-                <h2><?php echo $totalSiswa; ?></h2>
-                <p>Total Siswa</p>
+                <h2><?php echo $totalRiwayat; ?></h2>
+                <p>Total Riwayat Tugas</p>
             </div>
-            <i class='bx bx-group icon'></i>
+            <i class='bx bx-check-circle icon'></i>
         </div>
     </div>
 </div>

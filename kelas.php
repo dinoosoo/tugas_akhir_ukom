@@ -1,27 +1,47 @@
 <?php
-// Koneksi ke database
-$host = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tugas_digital"; // Nama database Anda
+session_start();
+include 'koneksi.php';
 
-$conn = new mysqli($host, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Koneksi gagal: " . $conn->connect_error);
-}
-
-// Proses pengiriman form
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Proses pengiriman form tambah kelas
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah'])) {
     $kelas = $_POST['kelas'];
 
     // Query untuk menyimpan data kelas ke database
     $sql = "INSERT INTO kelas (kelas) VALUES ('$kelas')";
 
     if ($conn->query($sql) === TRUE) {
-        echo "Data kelas berhasil disimpan!";
+        echo "<script>alert('Data kelas berhasil disimpan!'); window.location.href='kelas.php';</script>";
     } else {
-        echo "Error: " . $sql . "<br>" . $conn->error;
+        echo "<script>alert('Error: " . $sql . "<br>" . $conn->error . "');</script>";
+    }
+}
+
+// Proses edit data kelas
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit'])) {
+    $id = $_POST['id'];
+    $kelas = $_POST['kelas'];
+
+    // Query untuk mengupdate data kelas
+    $sql = "UPDATE kelas SET kelas='$kelas' WHERE id='$id'";
+
+    if ($conn->query($sql) === TRUE) {
+        echo "<script>alert('Data kelas berhasil diupdate!'); window.location.href='kelas.php';</script>";
+    } else {
+        echo "<script>alert('Error: " . $sql . "<br>" . $conn->error . "');</script>";
+    }
+}
+
+// Proses hapus data kelas
+if (isset($_GET['hapus'])) {
+    $id = $_GET['hapus'];
+
+    // Query untuk menghapus data kelas
+    $sql = "DELETE FROM kelas WHERE id='$id'";
+
+    if ($conn->query($sql) === TRUE) {
+        echo "<script>alert('Data kelas berhasil dihapus!'); window.location.href='kelas.php';</script>";
+    } else {
+        echo "<script>alert('Error: " . $sql . "<br>" . $conn->error . "');</script>";
     }
 }
 
@@ -110,53 +130,68 @@ $result = $conn->query("SELECT * FROM kelas");
 <body>
 <!-- SIDEBAR -->
 <section id="sidebar">
-	<a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
-	<ul class="side-menu">
-    <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+    <a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
+    <ul class="side-menu">
+        <!-- Dashboard sesuai role -->
+        <?php if ($_SESSION['role'] === 'admin') : ?>
+            <li><a href="admin_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php elseif ($_SESSION['role'] === 'guru') : ?>
+            <li><a href="guru_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php elseif ($_SESSION['role'] === 'siswa') : ?>
+            <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php endif; ?>
 
-    <li>
-        <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-        <ul class="side-dropdown">
-        <li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
-            <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
-            <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
-        </ul>
-    </li>
+        <!-- Menu Master Tugas -->
+            <li>
+                <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
+                <ul class="side-dropdown">
+                    <?php if ($_SESSION['role'] === 'admin') : ?>
+                        <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
+                    <?php endif; ?>
+                    <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'guru') : ?>
+                    <li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
+                    <?php endif; ?>
+                    <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
+                </ul>
+            </li>
 
-    <li>
-        <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-        <ul class="side-dropdown">
-            <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
-            <li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
-        </ul>
-    </li>
+        <!-- Menu Manajemen Tugas -->
+            <li>
+                <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
+                <ul class="side-dropdown">
+                    <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
+                    <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'guru') : ?>
+                        <li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
+                    <?php endif; ?>
+                </ul>
+            </li>
 
-    <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
-    <li><a href="#" onclick="confirmLogout(event)"><i class='bx bx-log-out icon'></i> Logout</a></li>
+        <!-- Menu Riwayat Tugas -->
+        <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'siswa') : ?>
+            <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
+        <?php endif; ?>
 
-</ul>
-
-	</section>
-    <!-- SIDEBAR -->
+        <!-- Menu Logout -->
+        <li><a href="#" onclick="confirmLogout(event)"><i class='bx bx-log-out icon'></i> Logout</a></li>
+    </ul>
+</section>
+<!-- SIDEBAR -->
 
     <!-- NAVBAR -->
-	<section id="content">
-		<nav>
-			<i class='bx bx-menu toggle-sidebar' ></i>
-			<form action="#">
-				<div class="form-group">
-					<input type="text" placeholder="Search...">
-					<i class='bx bx-search icon' ></i>
-				</div>
-			</form>
-			
-			<span class="divider"></span>
-		</nav>
-		<main>
-
+    <section id="content">
+        <nav>
+            <i class='bx bx-menu toggle-sidebar'></i>
+            <form action="#">
+                <div class="form-group">
+                    <input type="text" placeholder="Search...">
+                    <i class='bx bx-search icon'></i>
+                </div>
+            </form>
+            <span class="divider"></span>
+        </nav>
+        <main>
             <div class="container mt-4">
                 <h3>Daftar Kelas</h3>
-
                 <div class="row">
                     <!-- Kolom kiri: Tabel -->
                     <div class="col-md-12">
@@ -168,25 +203,56 @@ $result = $conn->query("SELECT * FROM kelas");
                                 <div class="table-responsive">
                                     <table class="table table-striped table-bordered">
                                         <thead>
-                                            <tr>
+                                            <tr style='text-align:center'>
                                                 <th>No</th>
                                                 <th>Kelas</th>
                                                 <th>Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php 
-                                                $no = 1;
-                                                while ($row = $result->fetch_assoc()) {
-                                                    echo "<tr>
-                                                            <td>{$no}</td>
-                                                            <td>{$row['kelas']}</td>
-                                                            <td>
-                                                                <a href='edit_kelas.php?id={$row['id']}' class='btn btn-sm btn-warning'><i class='bi bi-pencil-square'></i> Edit</a>
-                                                            </td>
-                                                          </tr>";
-                                                    $no++;
-                                                }
+                                            <?php
+                                            $no = 1;
+                                            while ($row = $result->fetch_assoc()) {
+                                                echo "<tr style='text-align:center'>
+                                                        <td>{$no}</td>
+                                                        <td>{$row['kelas']}</td>
+                                                        <td>
+                                                            <button class='btn btn-sm btn-warning edit-btn' data-bs-toggle='modal' data-bs-target='#editModal{$row['id']}'>
+                                                                <i class='bi bi-pencil-square'></i> Edit
+                                                            </button>
+                                                            <a href='kelas.php?hapus={$row['id']}' class='btn btn-sm btn-danger delete-btn' onclick='return confirm(\"Yakin ingin menghapus data ini?\")'>
+                                                                <i class='bi bi-trash'></i> Hapus
+                                                            </a>
+                                                        </td>
+                                                      </tr>";
+
+                                                // Modal untuk Edit Data
+                                                echo "
+                                                <div class='modal fade' id='editModal{$row['id']}' tabindex='-1' aria-labelledby='editModalLabel{$row['id']}' aria-hidden='true'>
+                                                    <div class='modal-dialog'>
+                                                        <div class='modal-content'>
+                                                            <div class='modal-header'>
+                                                                <h5 class='modal-title' id='editModalLabel{$row['id']}'>Edit Kelas</h5>
+                                                                <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
+                                                            </div>
+                                                            <form action='kelas.php' method='POST'>
+                                                                <div class='modal-body'>
+                                                                    <input type='hidden' name='id' value='{$row['id']}'>
+                                                                    <div class='mb-3'>
+                                                                        <label for='kelas' class='form-label'>Nama Kelas</label>
+                                                                        <input type='text' class='form-control' id='kelas' name='kelas' value='{$row['kelas']}' required>
+                                                                    </div>
+                                                                </div>
+                                                                <div class='modal-footer'>
+                                                                    <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Batal</button>
+                                                                    <button type='submit' name='edit' class='btn btn-primary'>Simpan</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>";
+                                                $no++;
+                                            }
                                             ?>
                                         </tbody>
                                     </table>
@@ -195,7 +261,7 @@ $result = $conn->query("SELECT * FROM kelas");
                         </div>
                     </div>
 
-                    <!-- Kolom kanan: Form -->
+                    <!-- Kolom kanan: Form Tambah Kelas -->
                     <div class="col-md-6 mt-4">
                         <div class="card">
                             <div class="card-header">
@@ -207,14 +273,13 @@ $result = $conn->query("SELECT * FROM kelas");
                                         <label for="kelas" class="form-label">Nama Kelas</label>
                                         <input type="text" class="form-control" id="kelas" name="kelas" required>
                                     </div>
-                                    <button type="submit" class="btn btn-primary">Tambah Kelas</button>
+                                    <button type="submit" name="tambah" class="btn btn-primary">Tambah Kelas</button>
                                 </form>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
         </main>
     </section>
 

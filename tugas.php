@@ -1,21 +1,11 @@
 <?php
 session_start();
 $user_role = $_SESSION['role'] ?? 'siswa'; // Gunakan role dari session atau default ke siswa
-
+date_default_timezone_set('Asia/Jakarta'); // Set the timezone
+include 'koneksi.php';
 
 // Cek role user
 $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'siswa'; // Default siswa
-
-// Koneksi ke DB
-$host = "localhost";
-$user = "root";
-$password = "";
-$database = "tugas_digital";
-$conn = mysqli_connect($host, $user, $password, $database);
-
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
-}
 
 // Ambil data guru
 $guru_result = mysqli_query($conn, "SELECT * FROM tugas_digital.guru");
@@ -78,37 +68,18 @@ if (isset($_POST["hapus"])) {
     }
 }
 
-/////////////////////////////////
-// 4. Upload File Tugas (Guru)
-/////////////////////////////////
-if (isset($_FILES['file_upload']) && isset($_POST['id'])) {
-    $id = $_POST['id'];
-    $file_name = $_FILES['file_upload']['name'];
-    $file_tmp = $_FILES['file_upload']['tmp_name'];
-    $upload_dir = "uploads/";
 
-    if (!is_dir($upload_dir)) {
-        mkdir($upload_dir, 0777, true);
-    }
 
-    $file_path = $upload_dir . basename($file_name);
-
-    if (move_uploaded_file($file_tmp, $file_path)) {
-        mysqli_query($conn, "UPDATE form_tugas SET file_upload='$file_name' WHERE id='$id'");
-        header("Location: tugas.php");
-    } else {
-        echo "Gagal mengupload file.";
-    }
-}
 
 /////////////////////////////////
 // 5. Proses Kumpul Tugas (Siswa)
 /////////////////////////////////
-if (isset($_POST['tugas_terkumpul'])) {
-    $tugas_id = $_POST['tugas_id'];
-    $nama_siswa = mysqli_real_escape_string($conn, $_POST['nama_siswa']);
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['tugas_terkumpul'])) {
+    $id_tugas = $_POST['tugas_id']; // Ambil ID tugas yang dikumpulkan
+    $nama_siswa = $_SESSION['nama_siswa']; // Ambil nama siswa dari session
     $waktu_pengumpulan = date('Y-m-d H:i:s');
 
+    // Proses upload file
     $file_name = $_FILES['file_upload']['name'];
     $file_tmp = $_FILES['file_upload']['tmp_name'];
     $upload_dir = "uploads/";
@@ -120,8 +91,9 @@ if (isset($_POST['tugas_terkumpul'])) {
     $file_path = $upload_dir . basename($file_name);
 
     if (move_uploaded_file($file_tmp, $file_path)) {
-        $query = "INSERT INTO tugas_terkumpul (tugas_id, nama_siswa, file_path, waktu_pengumpulan) 
-                  VALUES ('$tugas_id', '$nama_siswa', '$file_path', '$waktu_pengumpulan')";
+        // Simpan ke database dengan ID tugas yang benar
+        $query = "INSERT INTO tugas_terkumpul (id_tugas, nama_siswa, file_upload, waktu_pengumpulan) 
+                  VALUES ('$id_tugas', '$nama_siswa', '$file_name', '$waktu_pengumpulan')";
 
         if (mysqli_query($conn, $query)) {
             echo "<script>alert('Tugas berhasil dikumpulkan!'); window.location.href='tugas.php';</script>";
@@ -132,8 +104,6 @@ if (isset($_POST['tugas_terkumpul'])) {
         echo "Gagal mengupload file.";
     }
 }
-
-
 ?>
 
 <!DOCTYPE html>
@@ -219,42 +189,50 @@ if (isset($_POST['tugas_terkumpul'])) {
 	
 <!-- SIDEBAR -->
 <section id="sidebar">
-	<a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
-	<ul class="side-menu">
-    <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
-    <li>
-    <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-    <ul class="side-dropdown">
-        <?php 
-        // Hanya sembunyikan Kelas jika role siswa
-        if ($user_role != 'siswa') {
-            echo "<li><a href='kelas.php'><i class='bx bx-task'></i> Kelas</a></li>";
-        } else {
-            echo "<!-- Kelas disembunyikan untuk siswa -->";
-        }
-        
-        ?>
-        <!-- Guru dan Siswa selalu tampil -->
-        <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
-        <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
+    <a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
+    <ul class="side-menu">
+        <!-- Dashboard sesuai role -->
+        <?php if ($_SESSION['role'] === 'admin') : ?>
+            <li><a href="admin_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php elseif ($_SESSION['role'] === 'guru') : ?>
+            <li><a href="guru_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php elseif ($_SESSION['role'] === 'siswa') : ?>
+            <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+        <?php endif; ?>
+
+        <!-- Menu Master Tugas -->
+            <li>
+                <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
+                <ul class="side-dropdown">
+                    <?php if ($_SESSION['role'] === 'admin') : ?>
+                        <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
+                    <?php endif; ?>
+                    <li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
+                    <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
+                </ul>
+            </li>
+
+        <!-- Menu Manajemen Tugas -->
+            <li>
+                <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
+                <ul class="side-dropdown">
+                    <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
+                    <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'guru') : ?>
+                        <li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
+                    <?php endif; ?>
+                </ul>
+            </li>
+
+        <!-- Menu Riwayat Tugas -->
+        <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'siswa') : ?>
+            <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
+        <?php endif; ?>
+
+        <!-- Menu Logout -->
+        <li><a href="#" onclick="confirmLogout(event)"><i class='bx bx-log-out icon'></i> Logout</a></li>
     </ul>
-</li>
-
-    <li>
-        <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-        <ul class="side-dropdown">
-            <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
-            <li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
-        </ul>
-    </li>
-
-    <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
-    <li><a href="logout.php"><i class='bx bx-log-out icon'></i> Logout</a></li>
-
-</ul>
-
-	</section>
-	<!-- SIDEBAR -->
+</section>
+<!-- SIDEBAR -->
 
 	<!-- NAVBAR -->
 	<section id="content">
@@ -271,115 +249,123 @@ if (isset($_POST['tugas_terkumpul'])) {
 		</nav>
 		<main>
 
-		<!-- Form Tambah Tugas -->
-<div class="container mt-4">
-    <h2 class="text-start mb-3">Daftar Tugas</h2>
-    <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Data Tugas</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-bordered border">
+        <div class="container mt-4">
+        <h2 class="text-start mb-3">Daftar Tugas</h2>
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Data Tugas</h5>
+            </div>
+            <div class="card-body">
                 <?php if ($user_role == 'guru'): ?>
-    <div class="mb-3">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahTugas">
-            <i class="bx bx-plus"></i> Tambah Tugas
-        </button>
-    </div>
-<?php endif; ?>
+                    <div class="mb-3">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahTugas">
+                            <i class="bx bx-plus"></i> Tambah Tugas
+                        </button>
+                    </div>
+                <?php endif; ?>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered border">
+                        <thead class="bg-secondary text-white text-center">
+                            <tr>
+                                <?php if ($user_role == 'guru'): ?>
+                                    <th>No</th>
+                                    <th>Judul</th>
+                                    <th>Deskripsi</th>
+                                    <th>Mata Pelajaran</th>
+                                    <th>Kelas</th>
+                                    <th>Waktu Pengumpulan</th>
+                                    <th>Aksi</th>
+                                <?php else: ?>
+                                    <th>No</th>
+                                    <th>Judul</th>
+                                    <th>Deskripsi</th>
+                                    <th>Mata Pelajaran</th>
+                                    <th>Nama Guru</th>
+                                    <th>Waktu Pengumpulan</th>
+                                    <th>Status</th>
+                                <?php endif; ?>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            $result = mysqli_query($conn, "SELECT * FROM form_tugas");
+                            $no = 1;
+                            while ($row = mysqli_fetch_assoc($result)) {
+                                $nama_guru = isset($guru_data[$row['mata_pelajaran']]) ? $guru_data[$row['mata_pelajaran']] : 'Tidak Diketahui';
+                                echo "<tr style='text-align:center;'>
+                                        <td>{$no}</td>
+                                        <td>{$row['judul']}</td>
+                                        <td>{$row['deskripsi']}</td>
+                                        <td>{$row['mata_pelajaran']}</td>";
 
-                    <thead class="bg-secondary text-white text-center">
-                        <tr>
-                            <?php if ($user_role == 'guru'): ?>
-                                <th>No</th>
-                                <th>Judul</th>
-                                <th>Deskripsi</th>
-                                <th>Mata Pelajaran</th>
-                                <th>Kelas</th>
-                                <th>Waktu Pengumpulan</th>
-                                <th>Aksi</th>
-                            <?php else: ?>
-                                <th>No</th>
-                                <th>Judul</th>
-                                <th>Deskripsi</th>
-                                <th>Mata Pelajaran</th>
-                                <th>Nama Guru</th>
-                                <th>Waktu Pengumpulan</th>
-                                <th>Aksi</th>
-                            <?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                        $result = mysqli_query($conn, "SELECT * FROM form_tugas");
-                        $no = 1;
-                        while ($row = mysqli_fetch_assoc($result)) {
-                            $nama_guru = isset($guru_data[$row['mata_pelajaran']]) ? $guru_data[$row['mata_pelajaran']] : 'Tidak Diketahui';
-                            echo "<tr>
-                                    <td>{$no}</td>
-                                    <td>{$row['judul']}</td>
-                                    <td>{$row['deskripsi']}</td>
-                                    <td>{$row['mata_pelajaran']}</td>";
-
-                                    if ($user_role === 'guru') {
-                                        echo "<!-- Session Role: " . ($_SESSION['role'] ?? 'Not Set') . " -->";
-                    echo "<!-- User Role: $user_role -->";
-                    
-                                echo "<td>{$row['kelas']}</td>
-                                    <td>{$row['waktu_pengumpulan']}</td>
-                                    <td>
-                                        <button class='btn btn-warning btn-sm' data-bs-toggle='modal' data-bs-target='#editTugas{$row['id']}'>
-                                            <i class='bx bx-edit'></i>
-                                        </button>
-                                        <form method='POST' style='display:inline-block;' onsubmit='return confirm(\"Yakin ingin hapus?\");'>
-                                            <input type='hidden' name='id' value='{$row['id']}'>
-                                            <button type='submit' name='hapus' class='btn btn-danger btn-sm'>
-                                                <i class='bx bx-trash'></i> Hapus
+                                if ($user_role === 'guru') {
+                                    echo "<td>{$row['kelas']}</td>
+                                        <td>{$row['waktu_pengumpulan']}</td>
+                                        <td>
+                                            <button class='btn btn-warning btn-sm' data-bs-toggle='modal' data-bs-target='#editTugas{$row['id']}'>
+                                                <i class='bx bx-edit'></i>
                                             </button>
-                                        </form>
-                                    </td>";
-                            } else {
-                                echo "<td>{$nama_guru}</td>
-                                    <td>{$row['waktu_pengumpulan']}</td>
-                                    <td>
-                                        <!-- Tombol Kumpul yang memunculkan Modal -->
-                                        <button class='btn btn-success btn-sm' data-bs-toggle='modal' data-bs-target='#kumpulModal{$row['id']}'>
-                                            <i class='bx bx-upload'></i> Kumpul
-                                        </button>
-                                    </td>";
-                            }
-                            echo "</tr>";
-
-                            // Modal untuk Kumpul Tugas
-                            echo "
-                            <div class='modal fade' id='kumpulModal{$row['id']}' tabindex='-1' aria-labelledby='kumpulModalLabel{$row['id']}' aria-hidden='true'>
-                                <div class='modal-dialog'>
-                                    <div class='modal-content'>
-                                        <div class='modal-header'>
-                                            <h5 class='modal-title' id='kumpulModalLabel{$row['id']}'>Kumpul Tugas - {$row['judul']}</h5>
-                                            <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
-                                        </div>
-                                        <form action='tugas.php' method='POST' enctype='multipart/form-data'>
-                                            <div class='modal-body'>
+                                            <form method='POST' style='display:inline-block;' onsubmit='return confirm(\"Yakin ingin hapus?\");'>
                                                 <input type='hidden' name='id' value='{$row['id']}'>
-                                                <div class='mb-3'>
-                                                    <label for='fileUpload{$row['id']}' class='form-label'>Upload Tugas</label>
-                                                    <input type='file' class='form-control' id='fileUpload{$row['id']}' name='file_upload' accept='image/*,application/pdf' required>
-                                                </div>
-                                            </div>
-                                            <div class='modal-footer'>
-                                                <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Batal</button>
-                                                <button type='submit' class='btn btn-primary'>Kirim Tugas</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>";
-                            echo "</tr>";
+                                                <button type='submit' name='hapus' class='btn btn-danger btn-sm'>
+                                                    <i class='bx bx-trash'></i> Hapus
+                                                </button>
+                                            </form>
+                                        </td>";
+                                } else {
+                                    // Cek apakah siswa sudah mengumpulkan tugas ini
+                                    $id_tugas = $row['id'];
+                                    $nama_siswa = $_SESSION['nama_siswa'] ?? ''; // Ambil nama siswa dari session
+                                    $query_kumpul = "SELECT * FROM tugas_terkumpul WHERE id_tugas = '$id_tugas' AND nama_siswa = '$nama_siswa'";
+                                    $result_kumpul = mysqli_query($conn, $query_kumpul);
+                                    $sudah_kumpul = mysqli_num_rows($result_kumpul) > 0;
 
-                            if ($user_role == 'guru') {
-                                echo "<div class='modal fade' id='editTugas{$row['id']}' tabindex='-1'>
+                                    echo "<td>{$nama_guru}</td>
+                                        <td>{$row['waktu_pengumpulan']}</td>
+                                        <td>";
+                                    if ($sudah_kumpul) {
+                                        echo "<span class='text-success'>Selesai</span>";
+                                    } else {
+                                        echo "<button class='btn btn-success btn-sm' data-bs-toggle='modal' data-bs-target='#kumpulModal{$row['id']}'>
+                                                <i class='bx bx-upload'></i> Kumpul
+                                            </button>";
+                                    }
+                                    echo "</td>";
+                                }
+                                echo "</tr>";
+
+                                // Modal untuk Kumpul Tugas
+                                if ($user_role !== 'guru') {
+                                    echo "
+                                    <div class='modal fade' id='kumpulModal{$row['id']}' tabindex='-1' aria-labelledby='kumpulModalLabel{$row['id']}' aria-hidden='true'>
+                                        <div class='modal-dialog'>
+                                            <div class='modal-content'>
+                                                <div class='modal-header'>
+                                                    <h5 class='modal-title' id='kumpulModalLabel{$row['id']}'>Kumpul Tugas - {$row['judul']}</h5>
+                                                    <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
+                                                </div>
+                                                <form action='tugas.php' method='POST' enctype='multipart/form-data'>
+                                                    <div class='modal-body'>
+                                                        <input type='hidden' name='tugas_id' value='{$row['id']}'>
+                                                        <div class='mb-3'>
+                                                            <label for='fileUpload{$row['id']}' class='form-label'>Upload Tugas</label>
+                                                            <input type='file' class='form-control' id='fileUpload{$row['id']}' name='file_upload' accept='image/*,application/pdf' required>
+                                                        </div>
+                                                    </div>
+                                                    <div class='modal-footer'>
+                                                        <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Batal</button>
+                                                        <button type='submit' name='tugas_terkumpul' class='btn btn-primary'>Kirim Tugas</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>";
+                                }
+
+                                // Modal untuk Edit Tugas (Hanya untuk Guru)
+                                if ($user_role == 'guru') {
+                                    echo "
+                                    <div class='modal fade' id='editTugas{$row['id']}' tabindex='-1'>
                                         <div class='modal-dialog'>
                                             <div class='modal-content'>
                                                 <div class='modal-header bg-primary text-white'>
@@ -424,17 +410,17 @@ if (isset($_POST['tugas_terkumpul'])) {
                                                 </div>
                                             </div>
                                         </div>
-                                      </div>";
+                                    </div>";
+                                }
+                                $no++;
                             }
-                            $no++;
-                        }
-                        ?>
-                    </tbody>
-                </table>
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 <?php if ($user_role == 'guru'): ?>
 <!-- Modal Tambah Tugas -->

@@ -1,215 +1,149 @@
 <?php
 session_start();
-if ($_SESSION['role'] != 'guru') {
-    header("Location: siswa_dashboard.php");
-    exit();
+include 'koneksi.php';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = trim($_POST["username"]);
+    $password = trim($_POST["password"]); // Password dalam bentuk plain text
+
+    // Cek apakah username ada di tabel login
+    $sql = "SELECT * FROM login WHERE username = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 1) {
+        $user = $result->fetch_assoc();
+        
+        // Bandingkan password dalam bentuk plain text
+        if ($password === $user['password']) {
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
+
+            // Ambil nama berdasarkan role
+            if ($user['role'] == "siswa") {
+                // Ambil nama siswa dari tabel siswa
+                $sql_siswa = "SELECT nama_siswa FROM siswa WHERE nama_siswa = ?";
+                $stmt_siswa = $conn->prepare($sql_siswa);
+                $stmt_siswa->bind_param("s", $username); // Username adalah nama_siswa
+                $stmt_siswa->execute();
+                $result_siswa = $stmt_siswa->get_result();
+
+                if ($result_siswa->num_rows === 1) {
+                    $siswa = $result_siswa->fetch_assoc();
+                    $_SESSION['nama_siswa'] = $siswa['nama_siswa']; // Simpan nama siswa di session
+                }
+            } elseif ($user['role'] == "guru") {
+                // Ambil nama guru dari tabel guru
+                $sql_guru = "SELECT nama_guru FROM guru WHERE nama_guru = ?";
+                $stmt_guru = $conn->prepare($sql_guru);
+                $stmt_guru->bind_param("s", $username); // Username adalah nama_guru
+                $stmt_guru->execute();
+                $result_guru = $stmt_guru->get_result();
+
+                if ($result_guru->num_rows === 1) {
+                    $guru = $result_guru->fetch_assoc();
+                    $_SESSION['nama_guru'] = $guru['nama_guru']; // Simpan nama guru di session
+                }
+            }
+
+            // Arahkan berdasarkan role
+            if ($user['role'] == "guru") {
+                header("Location: guru_dashboard.php");
+            } elseif ($user['role'] == "siswa") {
+                header("Location: siswa_dashboard.php");
+            } elseif ($user['role'] == "admin") {
+                header("Location: admin_dashboard.php"); // Arahkan ke halaman admin
+            }
+            exit();
+        } else {
+            $error = "Password Anda salah!";
+        }
+    } else {
+        // Pesan jika username tidak ditemukan
+        $error = "Akun Anda tidak ada, silakan daftar dulu!";
+    }
 }
-include 'sidebar.php';
-// Koneksi langsung ke database tugas_digital
-$host = "localhost";
-$user = "root"; // Ganti jika pakai user lain
-$pass = ""; // Ganti jika ada password
-$db = "tugas_digital";
-
-$conn = mysqli_connect($host, $user, $pass, $db);
-
-// Periksa koneksi
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
-}
-
-// Ambil jumlah tugas dari tabel form_tugas
-$resultTugas = mysqli_query($conn, "SELECT COUNT(*) as total_tugas FROM form_tugas");
-$dataTugas = mysqli_fetch_assoc($resultTugas);
-$totalTugas = $dataTugas['total_tugas'];
-
-// Ambil jumlah guru dari tabel guru
-$resultGuru = mysqli_query($conn, "SELECT COUNT(*) as total_guru FROM guru");
-$dataGuru = mysqli_fetch_assoc($resultGuru);
-$totalGuru = $dataGuru['total_guru'];
-
-// Ambil jumlah siswa dari tabel siswa
-$resultSiswa = mysqli_query($conn, "SELECT COUNT(*) as total_siswa FROM siswa");
-$dataSiswa = mysqli_fetch_assoc($resultSiswa);
-$totalSiswa = $dataSiswa['total_siswa'];
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link href='https://unpkg.com/boxicons@2.0.9/css/boxicons.min.css' rel='stylesheet'>
-	<link rel="stylesheet" href="style.css">
-	<style>
-/* Sidebar Background - Terang */
-.side-menu {
-    background-color: #f5f5f5; /* Warna terang */
-    padding: 20px;
-    min-height: 100vh;
-    border-right: 1px solid #ddd;
-}
-
-/* Perbesar teks menu utama */
-.side-menu li a {
-    font-size: 18px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    color: #333; /* Teks gelap */
-    transition: background 0.3s, color 0.3s;
-    border-radius: 8px;
-}
-
-/* Hover dan Active - Warna Silver */
-.side-menu li a:hover, 
-.side-menu li a.active {
-    background-color: #c0c0c0; /* Silver */
-    color: #000; /* Teks hitam */
-}
-
-/* Perbesar dan ubah warna ikon */
-.side-menu li a .icon {
-    font-size: 24px;
-    color: #666; /* Soft Grey untuk ikon */
-    transition: color 0.3s;
-}
-
-/* Hover efek untuk ikon */
-.side-menu li a:hover .icon, 
-.side-menu li a.active .icon {
-    color: #000; /* Ikon hitam saat hover/active */
-}
-
-/* Dropdown menu */
-.side-dropdown {
-    margin-left: 20px;
-    background-color: #eaeaea; /* Lebih terang untuk dropdown */
-    border-radius: 6px;
-    padding: 5px 0;
-}
-
-.side-dropdown li a {
-    font-size: 16px;
-    padding: 10px 20px;
-    color: #555; /* Light Grey */
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-/* Hover dropdown dengan warna silver */
-.side-dropdown li a:hover {
-    background-color: #c0c0c0; /* Silver */
-    color: #000;
-}
-
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Tugas Digital</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #e3f2fd;
+            margin: 0;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
     </style>
-	<title>Tuga Digital</title>
 </head>
 <body>
-	
-<!-- SIDEBAR -->
-<section id="sidebar">
-	<a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
-	<ul class="side-menu">
-    <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+<div class="login-container">
+    <h4 class="mb-3"><i class="bx bx-book"></i> Tugas Digital</h4>
 
-    <li>
-        <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-        <ul class="side-dropdown">
-		<li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
-            <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
-            <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
-        </ul>
-    </li>
-
-    <li>
-        <a href="#"><i class='bx bxs-notepad icon'></i> Manajemen Tugas <i class='bx bx-chevron-right icon-right'></i></a>
-        <ul class="side-dropdown">
-            <li><a href="tugas.php"><i class='bx bx-task'></i> Tugas</a></li>
-			<li><a href="tugas_terkumpul.php"><i class='bx bx-task'></i> Tugas Terkumpul</a></li>
-			
-        </ul>
-    </li>
-
-    <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
-    <li><a href="#" onclick="confirmLogout(event)"><i class='bx bx-log-out icon'></i> Logout</a></li>
-
-
-</ul>
-
-	</section>	<!-- SIDEBAR -->
-
-	<!-- NAVBAR -->
-	<section id="content">
-		<nav>
-			<i class='bx bx-menu toggle-sidebar' ></i>
-			<form action="#">
-				<div class="form-group">
-					<input type="text" placeholder="Search...">
-					<i class='bx bx-search icon' ></i>
-				</div>
-			</form>
-			
-			<span class="divider"></span>
-		</nav>
-		<main>
-		<h1>SELAMAT DATANG GURU, <?php echo $_SESSION['username']; ?>!</h1>
-			<ul class="breadcrumbs">
-				<li><a href="#">Home</a></li>
-				<li class="divider">/</li>
-				<li><a href="#" class="active">Dashboard</a></li>
-			</ul>
-			<!-- MAIN -->
-<div class="info-data">
-    <div class="card">
-        <div class="head">
-            <div>
-                <h2><?php echo $totalTugas; ?></h2>
-                <p>Total Tugas</p>
-            </div>
-            <i class='bx bx-book icon'></i>
+    <?php if (isset($error)): ?>
+        <div class="alert alert-danger"> <?php echo $error; ?> </div>
+    <?php endif; ?>
+<form method="POST" action="">
+    <div class="mb-3 text-start">
+        <label for="username" class="form-label">Nama</label>
+        <div class="input-group">
+            <span class="input-group-text"><i class="bx bx-user"></i></span>
+            <input type="text" name="username" id="username" class="form-control" placeholder="masukkan nama lengkap" required>
         </div>
     </div>
-    <div class="card">
-        <div class="head">
-            <div>
-                <h2><?php echo $totalGuru; ?></h2>
-                <p>Total Guru</p>
-            </div>
-            <i class='bx bx-user icon'></i>
+    <div class="mb-3 text-start">
+        <label for="password" class="form-label">Password</label>
+        <div class="input-group">
+            <span class="input-group-text"><i class="bx bx-lock"></i></span>
+            <input type="password" name="password" id="password" class="form-control" required>
+            <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+                <i class="bx bx-hide"></i>
+            </button>
         </div>
     </div>
-    <div class="card">
-        <div class="head">
-            <div>
-                <h2><?php echo $totalSiswa; ?></h2>
-                <p>Total Siswa</p>
-            </div>
-            <i class='bx bx-group icon'></i>
-        </div>
+    <button type="submit" class="btn btn-primary w-100">Masuk</button>
+</form>
+    <div class="mt-3">
+        <p>Belum punya akun? <a href="register.php">Daftar di sini</a></p>
     </div>
 </div>
-	<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-	<script src="script.js"></script>
-</body>
+
 <script>
-function confirmLogout(event) {
-    event.preventDefault(); // Mencegah link langsung berjalan
+    document.getElementById("togglePassword").addEventListener("click", function() {
+        let passwordInput = document.getElementById("password");
+        let icon = this.querySelector("i");
 
-    // Tampilkan dialog konfirmasi
-    let confirmation = confirm("⚠️ Apakah Anda yakin ingin keluar dari akun ini?\n\nPastikan semua tugas sudah dikumpulkan!");
-
-    if (confirmation) {
-        // Jika user klik OK, arahkan ke logout.php
-        window.location.href = "logout.php";
-    }
-    // Jika user klik Cancel, tidak terjadi apa-apa
-}
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            icon.classList.replace("bx-hide", "bx-show");
+        } else {
+            passwordInput.type = "password";
+            icon.classList.replace("bx-show", "bx-hide");
+        }
+    });
 </script>
 
+<!-- Tambahkan CSS Boxicons -->
+<link href="https://unpkg.com/boxicons@2.0.9/css/boxicons.min.css" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

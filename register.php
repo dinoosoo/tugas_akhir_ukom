@@ -1,21 +1,13 @@
 <?php
 session_start();
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "tugas_digital";
-
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    die("Koneksi gagal: " . $conn->connect_error);
-}
+include 'koneksi.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST["username"]);
-    $password = password_hash(trim($_POST["password"]), PASSWORD_DEFAULT);
+    $password = trim($_POST["password"]);
     $role = $_POST["role"];
 
-    // **Cek apakah username sudah ada**
+    // **Cek apakah username sudah ada di tabel login**
     $check_sql = "SELECT * FROM login WHERE username = ?";
     $check_stmt = $conn->prepare($check_sql);
     $check_stmt->bind_param("s", $username);
@@ -25,16 +17,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($result->num_rows > 0) {
         $error = "Username sudah digunakan! Silakan gunakan username lain.";
     } else {
-        // **Simpan ke database jika username belum ada**
-        $sql = "INSERT INTO login (username, password, role) VALUES (?, ?, ?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sss", $username, $password, $role);
+        // **Cek apakah nama sudah ada di tabel siswa atau guru**
+        $check_nama_siswa = "SELECT * FROM siswa WHERE nama_siswa = ?";
+        $check_nama_guru = "SELECT * FROM guru WHERE nama_guru = ?";
 
-        if ($stmt->execute()) {
-            header("Location: login.php?register_success=1");
-            exit();
+        $stmt_siswa = $conn->prepare($check_nama_siswa);
+        $stmt_siswa->bind_param("s", $username);
+        $stmt_siswa->execute();
+        $result_siswa = $stmt_siswa->get_result();
+
+        $stmt_guru = $conn->prepare($check_nama_guru);
+        $stmt_guru->bind_param("s", $username);
+        $stmt_guru->execute();
+        $result_guru = $stmt_guru->get_result();
+
+        // **Jika nama ditemukan di tabel siswa atau guru, lanjutkan registrasi**
+        if ($result_siswa->num_rows > 0 || $result_guru->num_rows > 0) {
+            // **Simpan ke tabel login**
+            $sql = "INSERT INTO login (username, password, role) VALUES (?, ?, ?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("sss", $username, $password, $role);
+
+            if ($stmt->execute()) {
+                header("Location: index.php?register_success=1");
+                exit();
+            } else {
+                $error = "Terjadi kesalahan, coba lagi.";
+            }
         } else {
-            $error = "Terjadi kesalahan, coba lagi.";
+            // **Jika nama tidak ditemukan di tabel siswa atau guru, tampilkan error**
+            $error = "Nama tidak ditemukan! Anda tidak dapat mendaftar.";
         }
     }
 }
@@ -79,8 +91,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <form method="POST" action="">
         <!-- Username dengan ikon -->
         <div class="mb-3 text-start position-relative">
-            <label for="username" class="form-label"><i class="bx bx-user"></i> Username</label>
-            <input type="text" name="username" id="username" class="form-control ps-4" required>
+            <label for="username" class="form-label"><i class="bx bx-user"></i> Nama</label>
+            <input type="text" name="username" id="username" class="form-control ps-4" placeholder="masukkan nama lengkap" required>
         </div>
 
         <!-- Password dengan ikon dan toggle mata -->
@@ -108,10 +120,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </form>
 
     <div class="mt-3">
-        <p>Sudah punya akun? <a href="login.php">Login</a></p>
+        <p>Sudah punya akun? <a href="index.php">Login</a></p>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Script untuk toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.querySelector('i').classList.toggle('bx-show');
+        this.querySelector('i').classList.toggle('bx-hide');
+    });
+</script>
 </body>
 </html>

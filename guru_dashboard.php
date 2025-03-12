@@ -4,29 +4,31 @@ if ($_SESSION['role'] != 'guru') {
     header("Location: index.php");
     exit();
 }
-include 'sidebar.php';
-// Koneksi langsung ke database tugas_digital
-$host = "localhost";
-$user = "root"; // Ganti jika pakai user lain
-$pass = ""; // Ganti jika ada password
-$db = "tugas_digital";
+include 'koneksi.php';
 
-$conn = mysqli_connect($host, $user, $pass, $db);
-
-// Periksa koneksi
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
+// Pastikan session nama_guru sudah di-set
+if (!isset($_SESSION['nama_guru'])) {
+    die("Session nama_guru tidak ditemukan. Silakan login kembali.");
 }
+
+$nama_guru = $_SESSION['nama_guru']; // Ambil nama guru dari session
 
 // Ambil jumlah tugas dari tabel form_tugas
 $resultTugas = mysqli_query($conn, "SELECT COUNT(*) as total_tugas FROM form_tugas");
 $dataTugas = mysqli_fetch_assoc($resultTugas);
 $totalTugas = $dataTugas['total_tugas'];
 
-// Ambil jumlah guru dari tabel guru
-$resultGuru = mysqli_query($conn, "SELECT COUNT(*) as total_guru FROM guru");
-$dataGuru = mysqli_fetch_assoc($resultGuru);
-$totalGuru = $dataGuru['total_guru'];
+// Ambil jumlah tugas yang terkumpul untuk guru yang login
+$queryTugasTerkumpul = "
+    SELECT COUNT(*) as total_tugas_terkumpul 
+    FROM tugas_terkumpul 
+    INNER JOIN form_tugas ON tugas_terkumpul.id_tugas = form_tugas.id 
+    INNER JOIN guru ON form_tugas.mata_pelajaran = guru.mapel 
+    WHERE guru.nama_guru = '$nama_guru'
+";
+$resultTugasTerkumpul = mysqli_query($conn, $queryTugasTerkumpul);
+$dataTugasTerkumpul = mysqli_fetch_assoc($resultTugasTerkumpul);
+$totalTugasTerkumpul = $dataTugasTerkumpul['total_tugas_terkumpul'];
 
 // Ambil jumlah siswa dari tabel siswa
 $resultSiswa = mysqli_query($conn, "SELECT COUNT(*) as total_siswa FROM siswa");
@@ -116,13 +118,12 @@ $totalSiswa = $dataSiswa['total_siswa'];
 <section id="sidebar">
 	<a href="#" class="brand"><i class='bx bxs-book icon'></i> Tugas Digital</a>
 	<ul class="side-menu">
-    <li><a href="siswa_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
+    <li><a href="guru_dashboard.php" class="active"><i class='bx bxs-dashboard icon'></i> Dashboard</a></li>
 
     <li>
         <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
         <ul class="side-dropdown">
-		<li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
-            <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
+		    <li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
             <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
         </ul>
     </li>
@@ -135,7 +136,6 @@ $totalSiswa = $dataSiswa['total_siswa'];
         </ul>
     </li>
 
-    <li><a href="riwayat.php"><i class='bx bxs-chart icon'></i> Riwayat Tugas</a></li>
     <li><a href="#" onclick="confirmLogout(event)"><i class='bx bx-log-out icon'></i> Logout</a></li>
 
 
@@ -165,7 +165,7 @@ $totalSiswa = $dataSiswa['total_siswa'];
 				<li class="divider">/</li>
 				<li><a href="#" class="active">Dashboard</a></li>
 			</ul>
-			<!-- MAIN -->
+		<!-- MAIN -->
 <div class="info-data">
     <div class="card">
         <div class="head">
@@ -179,10 +179,10 @@ $totalSiswa = $dataSiswa['total_siswa'];
     <div class="card">
         <div class="head">
             <div>
-                <h2><?php echo $totalGuru; ?></h2>
-                <p>Total Guru</p>
+                <h2><?php echo $totalTugasTerkumpul; ?></h2>
+                <p>Total Tugas Terkumpul</p>
             </div>
-            <i class='bx bx-user icon'></i>
+            <i class='bx bx-task icon'></i>
         </div>
     </div>
     <div class="card">

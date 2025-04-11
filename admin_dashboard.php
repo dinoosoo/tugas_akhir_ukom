@@ -110,6 +110,7 @@ $totalSiswa = $dataSiswa['total_siswa'];
         <a href="#"><i class='bx bxs-inbox icon'></i> Master Tugas <i class='bx bx-chevron-right icon-right'></i></a>
         <ul class="side-dropdown">
 		<li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
+        <a href="mapel.php"><i class='bx bx-task'></i> Mata Pelajaran</a></li>
             <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
             <li><a href="siswa.php"><i class='bx bx-task'></i> Siswa</a></li>
         </ul>

@@ -68,6 +68,20 @@ if (isset($_POST["hapus"])) {
     }
 }
 
+// Pagination Setup
+$limit = 10; // jumlah data per halaman
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$start = ($page - 1) * $limit;
+
+// Hitung total data
+$total_result = mysqli_query($conn, "SELECT COUNT(*) as total FROM form_tugas");
+$total_row = mysqli_fetch_assoc($total_result)['total'];
+$total_pages = ceil($total_row / $limit);
+
+// Ambil data sesuai halaman
+$result = mysqli_query($conn, "SELECT * FROM form_tugas LIMIT $start, $limit");
+$no = $start + 1;
 
 
 
@@ -104,6 +118,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['tugas_terkumpul'])) {
         echo "Gagal mengupload file.";
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -288,8 +303,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['tugas_terkumpul'])) {
                         </thead>
                         <tbody>
                             <?php
-                            $result = mysqli_query($conn, "SELECT * FROM form_tugas");
+                            $result = mysqli_query($conn, "SELECT * FROM form_tugas LIMIT $start, $limit");
                             $no = 1;
+                            
                             while ($row = mysqli_fetch_assoc($result)) {
                                 $nama_guru = isset($guru_data[$row['mata_pelajaran']]) ? $guru_data[$row['mata_pelajaran']] : 'Tidak Diketahui';
                                 echo "<tr style='text-align:center;'>
@@ -417,7 +433,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['tugas_terkumpul'])) {
                             ?>
                         </tbody>
                     </table>
-                </div>
+<!-- Pagination -->
+<div class="mt-3 text-center">
+    <nav>
+        <ul class="pagination justify-content-center">
+            <?php if ($page > 1): ?>
+                <li class="page-item">
+                    <a class="page-link" href="?page=<?= $page - 1 ?>">Sebelumnya</a>
+                </li>
+            <?php endif; ?>
+
+            <?php
+            // Buat max 5 tombol halaman tampil (misal 1 2 3 4 5)
+            $range = 2; // jumlah range sebelum dan sesudah
+            $start_page = max(1, $page - $range);
+            $end_page = min($total_pages, $page + $range);
+
+            for ($i = $start_page; $i <= $end_page; $i++): ?>
+                <li class="page-item <?= $i == $page ? 'active' : '' ?>">
+                    <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
+                </li>
+            <?php endfor; ?>
+
+            <?php if ($page < $total_pages): ?>
+                <li class="page-item">
+                    <a class="page-link" href="?page=<?= $page + 1 ?>">Berikutnya</a>
+                </li>
+            <?php endif; ?>
+        </ul>
+    </nav>
+</div>
+
+
             </div>
         </div>
     </div>

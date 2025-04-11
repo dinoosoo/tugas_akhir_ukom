@@ -148,6 +148,9 @@ $result = $conn->query("SELECT * FROM kelas");
                     <?php if ($_SESSION['role'] === 'admin') : ?>
                         <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
                     <?php endif; ?>
+                    <?php if ($_SESSION['role'] === 'admin') : ?>
+                    <li><a href="mapel.php"><i class='bx bx-task'></i> Mata Pelajaran</a></li>
+                    <?php endif; ?>
                     <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'guru') : ?>
                     <li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
                     <?php endif; ?>

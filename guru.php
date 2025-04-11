@@ -160,6 +160,9 @@ $result = $conn->query("SELECT * FROM guru");
                     <?php if ($_SESSION['role'] === 'admin') : ?>
                         <li><a href="guru.php"><i class='bx bx-task'></i> Guru</a></li>
                     <?php endif; ?>
+                    <?php if ($_SESSION['role'] === 'admin') : ?>
+        <li><a href="mapel.php"><i class='bx bx-task'></i> Mata Pelajaran</a></li>
+    <?php endif; ?>
                     <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'guru') : ?>
                     <li><a href="kelas.php"><i class='bx bx-task'></i> Kelas</a></li>
                     <?php endif; ?>
@@ -313,9 +316,20 @@ $result = $conn->query("SELECT * FROM guru");
                                         <input type="text" class="form-control" id="nama_guru" name="nama_guru" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="mapel" class="form-label">Mata Pelajaran</label>
-                                        <input type="text" class="form-control" id="mapel" name="mapel" required>
-                                    </div>
+    <label for="mapel" class="form-label">Mata Pelajaran</label>
+    <select class="form-select" id="mapel" name="mapel" required>
+        <option value="">-- Pilih Mata Pelajaran --</option>
+        <?php
+        // Ambil data dari tabel mapel_es
+        $queryMapel = "SELECT * FROM mapel";
+        $resultMapel = $conn->query($queryMapel);
+        while ($rowMapel = $resultMapel->fetch_assoc()) {
+            echo "<option value='{$rowMapel['mapel']}'>{$rowMapel['mapel']}</option>";
+        }
+        ?>
+    </select>
+</div>
+
                                     <div class="mb-3">
                                         <label for="jenis_kelamin" class="form-label">Jenis Kelamin</label>
                                         <select class="form-select" id="jenis_kelamin" name="jenis_kelamin" required>

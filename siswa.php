@@ -4,6 +4,9 @@ $user_role = $_SESSION['role'] ?? 'siswa'; // Gunakan role dari session atau def
 
 include 'koneksi.php';
 
+// Nonaktifkan error fatal agar bisa dikendalikan manual
+mysqli_report(MYSQLI_REPORT_OFF);
+
 // Proses pengiriman form tambah siswa
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah'])) {
     $nama_siswa = $_POST['nama_siswa'];
@@ -11,14 +14,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah'])) {
     $jenis_kelamin = $_POST['jenis_kelamin'];
     $nisn = $_POST['nisn'];
 
-    // Query untuk menyimpan data siswa ke database
-    $sql = "INSERT INTO siswa (nama_siswa, kelas, jenis_kelamin, nisn) 
-            VALUES ('$nama_siswa', '$kelas', '$jenis_kelamin', '$nisn')";
-
-    if ($conn->query($sql) === TRUE) {
-        echo "<script>alert('Data siswa berhasil disimpan!'); window.location.href='siswa.php';</script>";
+    // Cek apakah NISN sudah ada
+    $cek = $conn->query("SELECT * FROM siswa WHERE nisn = '$nisn'");
+    if ($cek && $cek->num_rows > 0) {
+        echo "<script>alert('NISN sudah terdaftar!'); window.location.href='siswa.php';</script>";
     } else {
-        echo "<script>alert('Error: " . $sql . "<br>" . $conn->error . "');</script>";
+        // Query untuk menyimpan data siswa ke database
+        $sql = "INSERT INTO siswa (nama_siswa, kelas, jenis_kelamin, nisn) 
+                VALUES ('$nama_siswa', '$kelas', '$jenis_kelamin', '$nisn')";
+
+        if ($conn->query($sql) === TRUE) {
+            echo "<script>alert('Data siswa berhasil disimpan!'); window.location.href='siswa.php';</script>";
+        } else {
+            echo "<script>alert('Terjadi kesalahan saat menyimpan data!'); window.location.href='siswa.php';</script>";
+        }
     }
 }
 
